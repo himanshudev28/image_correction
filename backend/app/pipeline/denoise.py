@@ -22,19 +22,20 @@ def denoise(bgr: np.ndarray, mode: str = "bilateral") -> np.ndarray:
     )
 
 
-def sharpen(bgr: np.ndarray) -> np.ndarray:
+def sharpen(bgr: np.ndarray, amount: float | None = None) -> np.ndarray:
     """Gentle unsharp mask on the LAB *L* channel only.
 
     Sharpening luminance crisps text/handwriting edges without amplifying color
-    noise or screen moiré (the a/b chroma channels are left untouched). Amount is
-    deliberately mild so it never introduces halos on clean documents.
+    noise or screen moiré (the a/b chroma channels are left untouched). `amount`
+    overrides the default (used to sharpen harder after ML de-moiré).
     """
     cfg = settings.denoise
-    if not cfg.sharpen_amount or cfg.sharpen_amount <= 0:
+    amt = cfg.sharpen_amount if amount is None else amount
+    if not amt or amt <= 0:
         return bgr
     lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
     L, a, b = cv2.split(lab)
     blur = cv2.GaussianBlur(L, (0, 0), sigmaX=cfg.sharpen_sigma)
-    sharp = cv2.addWeighted(L, 1.0 + cfg.sharpen_amount, blur, -cfg.sharpen_amount, 0)
+    sharp = cv2.addWeighted(L, 1.0 + amt, blur, -amt, 0)
     lab = cv2.merge([sharp, a, b])
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)

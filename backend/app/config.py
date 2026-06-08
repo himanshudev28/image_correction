@@ -186,6 +186,8 @@ class DenoiseConfig:
     # Moderate so text is sharp without halos that hurt readability on dense forms.
     sharpen_amount: float = 0.45      # 0 disables
     sharpen_sigma: float = 1.1
+    # stronger sharpen after ML de-moiré (ESDNet softens the page, so recover crispness)
+    demoire_sharpen_amount: float = 0.85
 
 
 @dataclass(frozen=True)

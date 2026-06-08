@@ -134,10 +134,11 @@ def process_page(bgr: np.ndarray, mode: str = "color",
     flat = illumination.flatten(warped)
     t["illumination"] = (time.perf_counter() - t0) * 1000
 
-    # --- denoise + gentle luminance sharpen ---
+    # --- denoise + luminance sharpen (sharper after de-moiré, which softens) ---
     t0 = time.perf_counter()
     clean = denoise_stage.denoise(flat, mode=denoise_mode)
-    clean = denoise_stage.sharpen(clean)
+    sharpen_amt = settings.denoise.demoire_sharpen_amount if demoire else None
+    clean = denoise_stage.sharpen(clean, amount=sharpen_amt)
     t["denoise"] = (time.perf_counter() - t0) * 1000
 
     # --- output mode ---
