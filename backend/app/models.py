@@ -41,6 +41,7 @@ class Page(SQLModel, table=True):
     passthrough: bool = False
     pdf_ref: Optional[str] = None          # storage key of the verbatim page PDF
     mode: str = "color"                    # color | gray | bw
+    demoire: bool = False                  # opt-in ML de-moiré applied (screen photos)
     confidence: float = 0.0
     rotation: int = 0                      # applied rotation in degrees (0/90/180/270)
     # corners the warp used, normalized 0..1 [[x,y]*4]; lets the UI re-seed Adjust.

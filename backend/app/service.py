@@ -134,6 +134,7 @@ def _page_dto(p: Page) -> dict:
         "page_id": p.id,
         "order": p.order,
         "mode": p.mode,
+        "demoire": p.demoire,
         "rotation": p.rotation,
         "confidence": p.confidence,
         "gate_flags": p.gate_flags,
@@ -168,7 +169,7 @@ def recrop(scan_id: str, page_id: str, corners: list[list[float]]) -> dict:
         if p.passthrough:
             raise ValueError("born-digital pages are kept as-is; cropping not applicable")
         original = _load(p.original_ref)
-        result = process_page(original, mode=p.mode, forced_quad=corners)
+        result = process_page(original, mode=p.mode, forced_quad=corners, demoire=p.demoire)
         p.processed_ref = _store_processed(p.id, result.image)
         p.confidence = result.confidence
         p.gate_flags = result.flags
@@ -214,7 +215,7 @@ def set_mode(scan_id: str, page_id: str, mode: str) -> dict:
         if p.passthrough:
             raise ValueError("born-digital pages are kept as-is; mode change not applicable")
         original = _load(p.original_ref)
-        result = process_page(original, mode=mode, forced_quad=p.quad)
+        result = process_page(original, mode=mode, forced_quad=p.quad, demoire=p.demoire)
         img = _rotate_image(result.image, p.rotation) if p.rotation else result.image
         p.processed_ref = _store_processed(p.id, img)
         p.mode = mode
@@ -226,6 +227,28 @@ def set_mode(scan_id: str, page_id: str, mode: str) -> dict:
         s.refresh(p)
         dto = _page_dto(p)
     audit(None, "page.mode", page_id, {"mode": mode})
+    return dto
+
+
+def set_demoire(scan_id: str, page_id: str, on: bool) -> dict:
+    """Toggle opt-in ML de-moiré (for screen photos); re-runs from the original."""
+    with get_session() as s:
+        p = _require_page(s, scan_id, page_id)
+        if p.passthrough:
+            raise ValueError("born-digital pages are kept as-is; de-moiré not applicable")
+        original = _load(p.original_ref)
+        result = process_page(original, mode=p.mode, forced_quad=p.quad, demoire=on)
+        img = _rotate_image(result.image, p.rotation) if p.rotation else result.image
+        p.processed_ref = _store_processed(p.id, img)
+        p.demoire = on
+        p.confidence = result.confidence
+        p.gate_flags = result.flags
+        p.transforms = (p.transforms or []) + [{"op": "demoire", "on": on}]
+        s.add(p)
+        s.commit()
+        s.refresh(p)
+        dto = _page_dto(p)
+    audit(None, "page.demoire", page_id, {"on": on})
     return dto
 
 

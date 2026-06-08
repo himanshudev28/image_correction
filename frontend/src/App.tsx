@@ -6,6 +6,7 @@ import {
   recrop,
   rotate,
   setMode,
+  setDemoire,
   type Page,
   type Scan,
 } from "./api/client";
@@ -126,6 +127,10 @@ export default function App() {
                   }}
                   onMode={async (mode) => {
                     const r = await run(() => setMode(scan.scan_id, p.page_id, mode));
+                    if (r) replacePage(r);
+                  }}
+                  onDemoire={async (on) => {
+                    const r = await run(() => setDemoire(scan.scan_id, p.page_id, on));
                     if (r) replacePage(r);
                   }}
                   onDelete={async () => {

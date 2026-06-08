@@ -10,6 +10,7 @@ export interface Page {
   gate_flags: string[];
   quad: number[][] | null;
   passthrough: boolean;
+  demoire: boolean;
   low_confidence: boolean;
   preview_url: string;
 }
@@ -68,6 +69,16 @@ export async function setMode(id: string, pid: string, mode: string): Promise<Pa
   );
 }
 
+export async function setDemoire(id: string, pid: string, on: boolean): Promise<Page> {
+  return json<Page>(
+    await fetch(`/api/scans/${id}/pages/${pid}/demoire`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ on }),
+    })
+  );
+}
+
 export async function deletePage(id: string, pid: string): Promise<Scan> {
   return json<Scan>(await fetch(`/api/scans/${id}/pages/${pid}`, { method: "DELETE" }));
 }
@@ -88,5 +99,5 @@ export async function exportPdf(
 
 // cache-busting suffix so a re-processed preview reloads
 export function previewSrc(p: Page): string {
-  return `${p.preview_url}?v=${p.rotation}-${p.mode}-${p.confidence}`;
+  return `${p.preview_url}?v=${p.rotation}-${p.mode}-${p.demoire}-${p.confidence}`;
 }

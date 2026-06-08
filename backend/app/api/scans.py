@@ -30,6 +30,10 @@ class ModeBody(BaseModel):
     mode: str                    # color | gray | bw
 
 
+class DemoireBody(BaseModel):
+    on: bool                     # enable/disable ML de-moiré (screen photos)
+
+
 class ReorderBody(BaseModel):
     page_ids: list[str]
 
@@ -86,6 +90,11 @@ async def rotate(scan_id: str, page_id: str, body: RotateBody):
 @router.post("/{scan_id}/pages/{page_id}/mode")
 async def set_mode(scan_id: str, page_id: str, body: ModeBody):
     return await _edit(service.set_mode, scan_id, page_id, body.mode)
+
+
+@router.post("/{scan_id}/pages/{page_id}/demoire")
+async def set_demoire(scan_id: str, page_id: str, body: DemoireBody):
+    return await _edit(service.set_demoire, scan_id, page_id, body.on)
 
 
 @router.post("/{scan_id}/pages/reorder")

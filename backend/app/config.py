@@ -100,6 +100,16 @@ class DocAlignerConfig:
 
 
 @dataclass(frozen=True)
+class DemoireConfig:
+    """Optional ML de-moiré (ESDNet, Apache-2.0), CPU/ONNX. Opt-in per page — it's
+    heavy (~1.5s/page), so it never runs in the default flow."""
+    enabled: bool = os.environ.get("SCANNER_DEMOIRE", "1") != "0"
+    model_path: str = os.environ.get(
+        "SCANNER_DEMOIRE_MODEL", str(MODELS_DIR / "esdnet_fhdmi_demoire.onnx"))
+    max_edge: int = 768                # inference long edge (speed/quality balance)
+
+
+@dataclass(frozen=True)
 class PerspectiveConfig:
     """FR-15..FR-17 — robust ordering, full-res warp, skip-if-flat."""
     # skip-if-flat: if the detected quad already fills the frame and is barely
@@ -200,6 +210,7 @@ class Settings:
     gate: GateConfig = field(default_factory=GateConfig)
     boundary: BoundaryConfig = field(default_factory=BoundaryConfig)
     docaligner: DocAlignerConfig = field(default_factory=DocAlignerConfig)
+    demoire: DemoireConfig = field(default_factory=DemoireConfig)
     perspective: PerspectiveConfig = field(default_factory=PerspectiveConfig)
     illumination: IlluminationConfig = field(default_factory=IlluminationConfig)
     denoise: DenoiseConfig = field(default_factory=DenoiseConfig)

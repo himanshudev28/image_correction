@@ -8,6 +8,7 @@ interface Props {
   onRotate: () => void;
   onMode: (mode: string) => void;
   onAdjust: () => void;
+  onDemoire: (on: boolean) => void;
   onDelete: () => void;
 }
 
@@ -32,6 +33,7 @@ export default function PagePreview({
   onRotate,
   onMode,
   onAdjust,
+  onDemoire,
   onDelete,
 }: Props) {
   const pct = Math.round(page.confidence * 100);
@@ -105,6 +107,20 @@ export default function PagePreview({
             <option value="gray">Grayscale</option>
             <option value="bw">B&amp;W</option>
           </select>
+        )}
+        {!page.passthrough && (
+          <button
+            disabled={busy}
+            onClick={() => onDemoire(!page.demoire)}
+            title="Remove screen-photo moiré with an ML model (slower)"
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${
+              page.demoire
+                ? "bg-violet-600 text-white hover:bg-violet-700"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            De-moiré{page.demoire ? " ✓" : ""}
+          </button>
         )}
         <button
           disabled={busy}

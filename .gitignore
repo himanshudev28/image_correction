@@ -6,8 +6,10 @@ __pycache__/
 backend/var/
 .pytest_cache/
 
-# ML model weights (fetched via scripts/fetch_docaligner_model.py)
+# ML model weights
 backend/models/*.onnx
+# ...except the de-moiré model (our Apache-2.0 conversion, committed for reproducibility)
+!backend/models/esdnet_fhdmi_demoire.onnx
 
 # node
 frontend/node_modules/

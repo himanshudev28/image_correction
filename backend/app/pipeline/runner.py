@@ -17,6 +17,7 @@ import numpy as np
 from app.config import settings
 from app.pipeline import (
     boundary,
+    demoire_ml,
     denoise as denoise_stage,
     docaligner,
     gate as gate_stage,
@@ -37,6 +38,7 @@ class PageResult:
     quad: list | None = None                # normalized 0..1 corners used (or None)
     timings_ms: dict = field(default_factory=dict)
     mode: str = "color"
+    demoire: bool = False
 
 
 def _normalize_quad(quad: np.ndarray, shape) -> list:
@@ -51,10 +53,12 @@ def _denormalize_quad(norm_quad: list, shape) -> np.ndarray:
 
 def process_page(bgr: np.ndarray, mode: str = "color",
                  forced_quad: list | None = None,
-                 denoise_mode: str = "bilateral") -> PageResult:
+                 denoise_mode: str = "bilateral",
+                 demoire: bool = False) -> PageResult:
     """Run the auto pipeline on a single page.
 
     forced_quad: normalized [[x,y]*4] from a manual re-crop; bypasses auto boundary.
+    demoire: opt-in ML de-moiré (ESDNet) on the warped page — for screen photos.
     """
     t = {}
     flags: list[str] = []
@@ -119,6 +123,12 @@ def process_page(bgr: np.ndarray, mode: str = "color",
                 confidence -= 0.1
     t["boundary_perspective"] = (time.perf_counter() - t0) * 1000
 
+    # --- optional ML de-moiré (opt-in; for screen photos) ---
+    if demoire:
+        t0 = time.perf_counter()
+        warped = demoire_ml.demoire(warped)
+        t["demoire"] = (time.perf_counter() - t0) * 1000
+
     # --- illumination (color-preserving) ---
     t0 = time.perf_counter()
     flat = illumination.flatten(warped)
@@ -149,4 +159,5 @@ def process_page(bgr: np.ndarray, mode: str = "color",
         quad=used_quad,
         timings_ms={k: round(v, 1) for k, v in t.items()},
         mode=mode,
+        demoire=demoire,
     )
