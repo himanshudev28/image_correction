@@ -76,11 +76,12 @@ def create_scan(uploads: list[tuple[str, str | None, bytes]], owner: str | None 
 def _persist_new_page(session_id: str, order: int, bgr: np.ndarray) -> Page:
     page = Page(session_id=session_id, order=order)
     page.original_ref = _store_original(page.id, bgr)
-    result = process_page(bgr, mode="color")
+    result = process_page(bgr, mode="color")          # demoire=None → auto-decide
     page.processed_ref = _store_processed(page.id, result.image)
     page.confidence = result.confidence
     page.gate_flags = result.flags
     page.quad = result.quad
+    page.demoire = result.demoire                     # reflect the auto-routing decision
     page.transforms = [{"op": "auto", "timings_ms": result.timings_ms}]
     with get_session() as s:
         s.add(page)

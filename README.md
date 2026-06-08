@@ -36,13 +36,22 @@ The moment a page arrives, the server runs the full pipeline:
 
 Low-confidence pages surface a **manual Adjust** affordance (drag the 4 corners → re-crop) plus rotate and output-mode controls.
 
-### De-moiré (ML, opt-in)
+### Adaptive per-image processing
+
+Processing strength is **measured per page**, not fixed: `pipeline/adaptive.py`
+estimates the page's **noise** (Immerkaer σ → skip / bilateral / NLM) and a
+**screen-moiré score** (per-tile chroma oscillation). A clean shot is left sharp;
+a grainy one is denoised; a **screen photo is auto-routed to de-moiré** with no
+manual click. Sharpen radius is small to avoid halos. Thresholds are calibrated on
+the sample set and should be re-tuned on a real corpus.
+
+### De-moiré (ML — auto-routed, with manual override)
 
 Photos *of a screen* show rainbow/ripple **moiré** that classical filtering can't
-fully remove. A per-page **"De-moiré"** button runs **ESDNet** (CVMI-Lab/UHDM,
-ECCV 2022 — **Apache-2.0**), converted to ONNX and run on CPU via onnxruntime. It
-is **opt-in** (≈1.5 s/page), never in the default flow, since it's only needed for
-screen captures and would otherwise add latency to every scan. The model
+fully remove. The adaptive layer auto-detects them and runs **ESDNet**
+(CVMI-Lab/UHDM, ECCV 2022 — **Apache-2.0**), converted to ONNX and run on CPU via
+onnxruntime (~1.5–3 s, so only on detected screen photos). A per-page **"De-moiré"**
+button overrides the auto decision (force on/off). The model
 (`backend/models/esdnet_fhdmi_demoire.onnx`, ~24 MB) is committed for reproducibility.
 
 > Per FR-13, verify the model's training-data (FHDMi) license before commercial use.

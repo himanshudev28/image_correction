@@ -194,6 +194,22 @@ class DenoiseConfig:
 
 
 @dataclass(frozen=True)
+class AdaptiveConfig:
+    """Per-image adaptive selection (adaptive.select_params). Thresholds are anchors;
+    calibrate on a real corpus. Noise = Immerkaer sigma; moiré = per-tile chroma."""
+    noise_skip: float = 2.0            # below → skip denoise (keep it sharp)
+    noise_light: float = 5.0           # light bilateral
+    noise_heavy: float = 9.0           # above → NLM (grainy low-light)
+    bilat_light_sigma_color: int = 12
+    bilat_strong_sigma_color: int = 30
+    sharpen_sigma_small: float = 0.8   # small radius => crisp edge, minimal ring
+    # per-tile chroma OSCILLATION (std). On the real samples: screen photo ~4.5,
+    # paper forms ≤4.1, card ~2.0. 4.3 routes the screen photo only. Calibrate on a
+    # real corpus; the manual De-moiré toggle overrides either way (auto is best-effort).
+    moire_threshold: float = 4.3
+
+
+@dataclass(frozen=True)
 class SanityConfig:
     """FR-30 — post-warp sanity. Flag implausible output instead of shipping it."""
     min_aspect: float = 0.4           # H/W or W/H must be within [min, max]
@@ -205,7 +221,7 @@ class SanityConfig:
 class PdfConfig:
     """FR-26..FR-27 — honest tradeoff: JPEG default (small, lossy), PNG optional."""
     default_encoding: str = "jpeg"    # 'jpeg' | 'png'
-    jpeg_quality: int = 90
+    jpeg_quality: int = 95           # higher quality + 4:4:4 to avoid mosquito noise on text
     default_dpi: int = 200            # explicit DPI so downstream sees correct size
 
 
@@ -220,6 +236,7 @@ class Settings:
     perspective: PerspectiveConfig = field(default_factory=PerspectiveConfig)
     illumination: IlluminationConfig = field(default_factory=IlluminationConfig)
     denoise: DenoiseConfig = field(default_factory=DenoiseConfig)
+    adaptive: AdaptiveConfig = field(default_factory=AdaptiveConfig)
     sanity: SanityConfig = field(default_factory=SanityConfig)
     pdf: PdfConfig = field(default_factory=PdfConfig)
 

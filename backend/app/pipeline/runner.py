@@ -16,6 +16,7 @@ import numpy as np
 
 from app.config import settings
 from app.pipeline import (
+    adaptive,
     boundary,
     demoire_ml,
     denoise as denoise_stage,
@@ -54,11 +55,12 @@ def _denormalize_quad(norm_quad: list, shape) -> np.ndarray:
 def process_page(bgr: np.ndarray, mode: str = "color",
                  forced_quad: list | None = None,
                  denoise_mode: str = "bilateral",
-                 demoire: bool = False) -> PageResult:
+                 demoire: bool | None = None) -> PageResult:
     """Run the auto pipeline on a single page.
 
     forced_quad: normalized [[x,y]*4] from a manual re-crop; bypasses auto boundary.
-    demoire: opt-in ML de-moiré (ESDNet) on the warped page — for screen photos.
+    demoire: None = auto-decide (adaptive screen-photo detector); True/False = force
+             the ML de-moiré on/off (the manual toggle).
     """
     t = {}
     flags: list[str] = []
@@ -123,23 +125,35 @@ def process_page(bgr: np.ndarray, mode: str = "color",
                 confidence -= 0.1
     t["boundary_perspective"] = (time.perf_counter() - t0) * 1000
 
-    # --- optional ML de-moiré (opt-in; for screen photos) ---
-    if demoire:
+    # --- per-image adaptive parameter selection ---
+    ap = adaptive.select_params(warped, settings.adaptive)
+    if ap["noise_sigma"] >= settings.adaptive.noise_heavy:
+        flags.append("noisy")
+    # de-moiré routing: auto from the screen-photo detector, unless forced by the user
+    route_demoire = ap["route_demoire"] if demoire is None else bool(demoire)
+    if route_demoire:
+        flags.append("screen_moire")
+
+    # --- ML de-moiré (auto-routed for screen photos, or forced) ---
+    if route_demoire and settings.demoire.enabled:
         t0 = time.perf_counter()
         warped = demoire_ml.demoire(warped)
         t["demoire"] = (time.perf_counter() - t0) * 1000
 
     # --- illumination (color-preserving) ---
     t0 = time.perf_counter()
-    scan_white = settings.illumination.demoire_white_pct if demoire else None
+    scan_white = settings.illumination.demoire_white_pct if route_demoire else None
     flat = illumination.flatten(warped, scan_white_pct=scan_white)
     t["illumination"] = (time.perf_counter() - t0) * 1000
 
-    # --- denoise + luminance sharpen (sharper after de-moiré, which softens) ---
+    # --- adaptive denoise + sharpen (measured per image) ---
     t0 = time.perf_counter()
-    clean = denoise_stage.denoise(flat, mode=denoise_mode)
-    sharpen_amt = settings.denoise.demoire_sharpen_amount if demoire else None
-    clean = denoise_stage.sharpen(clean, amount=sharpen_amt)
+    mode_d, sigma_c = ap["denoise"]
+    clean = denoise_stage.denoise(flat, mode=mode_d, sigma_color=sigma_c)
+    amt, sig = ap["sharpen"]
+    if route_demoire:                       # ESDNet softens; recover crispness (bg is flat white)
+        amt = settings.denoise.demoire_sharpen_amount
+    clean = denoise_stage.sharpen(clean, amount=amt, sigma=sig)
     t["denoise"] = (time.perf_counter() - t0) * 1000
 
     # --- output mode ---
@@ -161,5 +175,5 @@ def process_page(bgr: np.ndarray, mode: str = "color",
         quad=used_quad,
         timings_ms={k: round(v, 1) for k, v in t.items()},
         mode=mode,
-        demoire=demoire,
+        demoire=route_demoire,
     )

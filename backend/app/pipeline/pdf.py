@@ -25,7 +25,10 @@ def encode_page(bgr: np.ndarray, encoding: str, quality: int | None = None) -> b
         ok, buf = cv2.imencode(".png", bgr)
     else:
         q = quality if quality is not None else settings.pdf.jpeg_quality
-        ok, buf = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, int(q)])
+        params = [cv2.IMWRITE_JPEG_QUALITY, int(q)]
+        if hasattr(cv2, "IMWRITE_JPEG_SAMPLING_FACTOR"):       # keep chroma full-res (no mosquito noise on text)
+            params += [cv2.IMWRITE_JPEG_SAMPLING_FACTOR, cv2.IMWRITE_JPEG_SAMPLING_FACTOR_444]
+        ok, buf = cv2.imencode(".jpg", bgr, params)
     if not ok:
         raise RuntimeError(f"failed to encode page as {encoding}")
     return buf.tobytes()
