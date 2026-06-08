@@ -68,9 +68,14 @@ Two terminals. The Vite dev server proxies `/api` → FastAPI, so it works on fi
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python scripts/fetch_docaligner_model.py      # optional but recommended
+python scripts/fetch_docaligner_model.py      # REQUIRED for the corner-detection quality below
 uvicorn app.main:app --reload --port 8000
 ```
+
+> ⚠️ **Fetch the model.** It's ~79 MB and not committed. Without it the app still
+> runs, but corner detection drops to classical-only and struggles on hard photos
+> (in-hand / cluttered / fills-the-frame). Run the fetch step to get the quality
+> shown here. The script downloads the exact same Apache-2.0 ONNX used in development.
 
 **Frontend** (`:5173`)
 ```bash
