@@ -109,7 +109,10 @@ class PerspectiveConfig:
     # outward safety margin on AUTO-detected corners before warping, so we don't
     # shave off content right at the page edge ("crops too much"). Expressed as a
     # fraction of the quad size; clamped to the image. Manual re-crop is exact.
-    crop_margin_frac: float = float(os.environ.get("SCANNER_CROP_MARGIN", "0.04"))
+    crop_margin_frac: float = float(os.environ.get("SCANNER_CROP_MARGIN", "0.05"))
+    # DocAligner corners are precise → tight crop (Adobe-like); the larger margin
+    # above is the safety net for the less-precise classical fallback.
+    docaligner_crop_margin_frac: float = 0.02
     # plausibility guard: a detected quad whose corner angles or side ratios are
     # implausible for a document is treated as a BAD detection -> deskew instead of
     # shipping a sheared/clipped warp, and flag for manual Adjust.
@@ -127,7 +130,7 @@ class IlluminationConfig:
     bg_estimate_long_edge: int = 256  # estimate background at this size
     bg_blur_sigma_frac: float = 0.10  # gaussian-blur background ~10% of long edge:
                                       # captures smooth shadow gradients to divide out
-    clahe_clip: float = 1.5           # local-contrast finish, won't crush ink
+    clahe_clip: float = 1.0           # gentle local-contrast finish, won't crush ink
     clahe_grid: int = 8
     # "scan look" level stretch (Adobe Magic-Color style) on the L channel only —
     # chroma (a/b) untouched so ink/stamp color survives (FR-19). Content-adaptive:
@@ -136,11 +139,13 @@ class IlluminationConfig:
     paper_frac_threshold: float = 0.45  # >= this frac of bright low-sat px → "document"
     paper_bright_v: int = 180           # HSV V above this = bright
     paper_low_sat: int = 45             # HSV S below this = low-saturation (paper-like)
-    # document preset (punchy white paper + dark text)
-    doc_white_pct: float = 75.0         # this L percentile and above → pure white
-    doc_black_pct: float = 8.0          # this L percentile → black_target
-    doc_black_target: int = 15          # don't fully crush (keep ink legible, not pure black)
-    doc_gamma: float = 0.90             # <1 brightens midtones slightly
+    # document preset: whiten paper but keep darks SOFT so dark header bands and
+    # small text stay readable (not crushed to black). High white-point cleans the
+    # paper; a raised black floor preserves legibility (Adobe's clean-but-readable look).
+    doc_white_pct: float = 78.0         # this L percentile and above → pure white
+    doc_black_pct: float = 4.0          # only the darkest few % map to the floor
+    doc_black_target: int = 32          # floor — keeps bands/text dark-gray, readable
+    doc_gamma: float = 1.0              # neutral midtones (no extra crush/lift)
     # photo preset (gentle — protects colored cards/photos)
     photo_white_pct: float = 98.0
     photo_black_pct: float = 2.0
@@ -159,9 +164,10 @@ class DenoiseConfig:
     bilateral_d: int = 5
     bilateral_sigma_color: int = 50
     bilateral_sigma_space: int = 50
-    # gentle luminance-only unsharp finish (crisper text; no color/moiré boost)
-    sharpen_amount: float = 0.6       # 0 disables
-    sharpen_sigma: float = 1.2
+    # gentle luminance-only unsharp finish (crisper text; no color/moiré boost).
+    # Moderate so text is sharp without halos that hurt readability on dense forms.
+    sharpen_amount: float = 0.45      # 0 disables
+    sharpen_sigma: float = 1.1
 
 
 @dataclass(frozen=True)

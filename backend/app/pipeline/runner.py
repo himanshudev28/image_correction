@@ -105,9 +105,12 @@ def process_page(bgr: np.ndarray, mode: str = "color",
             confidence -= 0.3
             used_quad = _normalize_quad(perspective.order_points(quad), bgr.shape)
         else:
-            # add a small outward margin so we don't clip content at the edge
-            quad = perspective.expand_quad(
-                quad, settings.perspective.crop_margin_frac, bgr.shape)
+            # outward safety margin so we don't clip content at the edge — tight for
+            # the precise ML path, larger for the less-precise classical fallback.
+            margin = (settings.perspective.docaligner_crop_margin_frac
+                      if method == "docaligner"
+                      else settings.perspective.crop_margin_frac)
+            quad = perspective.expand_quad(quad, margin, bgr.shape)
             warped = perspective.warp(bgr, quad)
             used_quad = _normalize_quad(perspective.order_points(quad), bgr.shape)
             # a rotated-rect fallback is a looser crop than a true 4-corner fit
