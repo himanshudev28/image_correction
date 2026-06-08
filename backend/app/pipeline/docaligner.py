@@ -37,6 +37,36 @@ def available() -> bool:
     return _get_session() is not None
 
 
+def ensure_model_available() -> bool:
+    """Make sure the model file exists, auto-downloading it once if missing and
+    auto-download is enabled. Returns True if the file is present afterwards.
+    Best-effort and non-fatal — on failure the pipeline stays classical."""
+    from pathlib import Path
+
+    cfg = settings.docaligner
+    if not cfg.enabled:
+        return False
+    dest = Path(cfg.model_path)
+    if dest.exists():
+        return True
+    if not cfg.auto_download:
+        logger.warning("DocAligner model missing and auto-download disabled (%s). "
+                       "Run scripts/fetch_docaligner_model.py.", cfg.model_path)
+        return False
+    try:
+        import gdown
+
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        logger.info("Downloading DocAligner model (~79 MB, one-time) to %s ...", dest)
+        out = gdown.download(id=cfg.model_file_id, output=str(dest), quiet=True)
+        ok = out is not None and dest.exists()
+        logger.info("DocAligner model %s.", "ready" if ok else "download failed")
+        return ok
+    except Exception:  # noqa: BLE001 — never let a download error break the app
+        logger.exception("DocAligner model auto-download failed — staying classical")
+        return False
+
+
 def _get_session():
     global _session, _load_failed
     if _session is not None:
@@ -50,11 +80,8 @@ def _get_session():
         if not cfg.enabled:
             _load_failed = True
             return None
-        from pathlib import Path
 
-        if not Path(cfg.model_path).exists():
-            logger.warning("DocAligner model not found at %s — staying classical. "
-                           "Run scripts/fetch_docaligner_model.py to enable.", cfg.model_path)
+        if not ensure_model_available():
             _load_failed = True
             return None
         try:

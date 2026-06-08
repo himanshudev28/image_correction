@@ -1,8 +1,7 @@
-"""Download the DocAligner corner-detection model (Apache-2.0) for the ML fallback.
+"""Download the DocAligner corner-detection model (Apache-2.0) ahead of time.
 
-The model is the heatmap-regression ONNX published by DocsaidLab's DocAligner
-(fastvit_sa24). We fetch only the single ONNX file — not the full toolkit — and
-run it via onnxruntime. If the file is absent, the pipeline stays fully classical.
+The server also auto-downloads this on first run, so this script is only needed
+for offline/air-gapped prep or to fetch it explicitly before starting.
 
 Run: python scripts/fetch_docaligner_model.py
 """
@@ -13,23 +12,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.config import MODELS_DIR  # noqa: E402
-
-# Google Drive file id from the official DocAligner package (heatmap_reg, fastvit_sa24).
-FILE_ID = "14vUH77v6yGg7zFctUgcT6BzV5Iisg4Dl"
-DEST = MODELS_DIR / "docaligner_fastvit_sa24.onnx"
+from app.config import settings  # noqa: E402
+from app.pipeline import docaligner  # noqa: E402
 
 
 def main() -> None:
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    if DEST.exists():
-        print(f"Model already present: {DEST}")
-        return
-    import gdown
-
-    print(f"Downloading DocAligner model to {DEST} ...")
-    gdown.download(id=FILE_ID, output=str(DEST), quiet=False)
-    print("Done. The ML corner-detection fallback is now enabled.")
+    if docaligner.ensure_model_available():
+        print(f"Model ready: {settings.docaligner.model_path}")
+    else:
+        print("Model could not be fetched (offline, or auto-download disabled).")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

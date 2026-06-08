@@ -87,6 +87,10 @@ class DocAlignerConfig:
     enabled: bool = os.environ.get("SCANNER_DOCALIGNER", "1") != "0"
     model_path: str = os.environ.get(
         "SCANNER_DOCALIGNER_MODEL", str(MODELS_DIR / "docaligner_fastvit_sa24.onnx"))
+    # auto-download the model on first run if missing (clone-and-run convenience).
+    # Set SCANNER_DOCALIGNER_AUTODOWNLOAD=0 for air-gapped deploys (pre-place the file).
+    auto_download: bool = os.environ.get("SCANNER_DOCALIGNER_AUTODOWNLOAD", "1") != "0"
+    model_file_id: str = "14vUH77v6yGg7zFctUgcT6BzV5Iisg4Dl"  # DocAligner fastvit_sa24 (Google Drive)
     input_size: int = 256
     heatmap_threshold: float = 0.2
     # Pad the image with a border before inference. The model expects a margin

@@ -47,15 +47,14 @@ finds corners when the page fills the frame (its known blind spot). Classical
 detection is used only when DocAligner returns nothing *and* its quad is
 geometrically plausible.
 
-The model isn't committed (it's ~79 MB). Fetch it once:
+The model isn't committed (it's ~79 MB) — it **auto-downloads on first server
+start** (and lazily on first use), so cloning and running reproduces the demonstrated
+quality with no manual step. Pre-fetch or air-gap it via
+`python scripts/fetch_docaligner_model.py` / `SCANNER_DOCALIGNER_AUTODOWNLOAD=0`.
 
-```bash
-cd backend && source .venv/bin/activate
-python scripts/fetch_docaligner_model.py     # downloads to backend/models/
-```
-
-If the model is absent (or `SCANNER_DOCALIGNER=0`), the pipeline stays fully
-classical — the fallback is graceful. ML inference adds ~170 ms only on pages it runs.
+If the model can't be obtained (offline) or `SCANNER_DOCALIGNER=0`, the pipeline
+stays fully classical — the fallback is graceful. ML inference adds ~170 ms only on
+pages it runs.
 
 ---
 
@@ -68,14 +67,15 @@ Two terminals. The Vite dev server proxies `/api` → FastAPI, so it works on fi
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python scripts/fetch_docaligner_model.py      # REQUIRED for the corner-detection quality below
 uvicorn app.main:app --reload --port 8000
 ```
 
-> ⚠️ **Fetch the model.** It's ~79 MB and not committed. Without it the app still
-> runs, but corner detection drops to classical-only and struggles on hard photos
-> (in-hand / cluttered / fills-the-frame). Run the fetch step to get the quality
-> shown here. The script downloads the exact same Apache-2.0 ONNX used in development.
+> The ~79 MB DocAligner model **auto-downloads on first start** (one-time, needs
+> internet), so a fresh clone reproduces the demonstrated quality with no extra
+> steps. For air-gapped installs, pre-fetch it with
+> `python scripts/fetch_docaligner_model.py` and/or set
+> `SCANNER_DOCALIGNER_AUTODOWNLOAD=0`. Without the model, the app still runs but
+> corner detection drops to classical-only.
 
 **Frontend** (`:5173`)
 ```bash

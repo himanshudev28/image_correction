@@ -23,6 +23,11 @@ from app.storage import init_storage
 async def lifespan(_: FastAPI):
     init_storage()
     init_db()
+    # Prefetch the ML corner model once on startup (best-effort, non-fatal) so the
+    # first upload isn't slowed by the download. Falls back to classical if offline.
+    from app.pipeline import docaligner
+
+    docaligner.ensure_model_available()
     yield
 
 
