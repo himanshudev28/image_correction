@@ -128,10 +128,15 @@ class IlluminationConfig:
     # captures large soft shadows cheaply (a huge full-res kernel would be slow and
     # miss big blobs). The kernel is relative to the small estimate (FR-20).
     bg_estimate_long_edge: int = 256  # estimate background at this size
-    bg_blur_sigma_frac: float = 0.10  # gaussian-blur background ~10% of long edge:
-                                      # captures smooth shadow gradients to divide out
-    clahe_clip: float = 1.0           # gentle local-contrast finish, won't crush ink
+    # Background = morphological CLOSE (local bright/paper level), kernel a fraction
+    # of the small estimate. Large enough to bridge dark bands/text so they stay dark
+    # (white-on-dark text keeps its contrast), yet it still follows — and divides out —
+    # the smooth shadow gradient. (A plain Gaussian would dip dark under big black
+    # bands and wash their text to gray.)
+    bg_close_frac: float = 0.25
     clahe_grid: int = 8
+    doc_clahe_clip: float = 2.0       # documents: sharpen band/text local contrast
+    photo_clahe_clip: float = 1.0     # photos/cards: gentle, avoid noise boost
     # "scan look" level stretch (Adobe Magic-Color style) on the L channel only —
     # chroma (a/b) untouched so ink/stamp color survives (FR-19). Content-adaptive:
     # a document-like page (mostly bright paper) gets the aggressive preset; a

@@ -28,19 +28,22 @@ from app.config import settings
 
 
 def _estimate_background(L: np.ndarray) -> np.ndarray:
-    """Low-res large-Gaussian background estimate, upscaled to full size.
+    """Low-res morphological-close background (local paper/bright level), upscaled.
 
-    A big Gaussian captures the smooth illumination/shadow gradient far better than
-    a morphological close (which clings to dark text/bands and leaves shadows behind),
-    so dividing by it flattens uneven lighting to a clean, even page."""
+    The CLOSE takes the local bright level, so it bridges over dark bands/text
+    (keeping them dark when divided — white-on-dark text stays crisp) while still
+    following the smooth shadow gradient so it gets divided out. Kernel must be
+    large enough to span the widest dark feature (e.g. a header band)."""
     cfg = settings.illumination
     h, w = L.shape
     long_edge = max(h, w)
     scale = min(1.0, cfg.bg_estimate_long_edge / long_edge)
     small = cv2.resize(L, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA) if scale < 1 else L
 
-    sigma = max(2.0, max(small.shape[:2]) * cfg.bg_blur_sigma_frac)
-    bg_small = cv2.GaussianBlur(small, (0, 0), sigmaX=sigma)
+    k = int(round(max(small.shape[:2]) * cfg.bg_close_frac)) | 1   # odd
+    se = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
+    bg_small = cv2.morphologyEx(small, cv2.MORPH_CLOSE, se)
+    bg_small = cv2.GaussianBlur(bg_small, (0, 0), sigmaX=k / 3.0)   # smooth the estimate
     return cv2.resize(bg_small, (w, h), interpolation=cv2.INTER_LINEAR)
 
 
@@ -78,19 +81,23 @@ def flatten(bgr: np.ndarray, clahe: bool = True) -> np.ndarray:
     lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
     L, a, b = cv2.split(lab)
 
+    # classify once: document-like (mostly white paper) vs colored photo/card.
+    strong = _is_document(bgr)
+
     bg = _estimate_background(L)
 
     # divide L by background and rescale to flatten shadows/uneven lighting
     L_flat = cv2.divide(L, bg, scale=255)
 
     if clahe:
-        cl = cv2.createCLAHE(clipLimit=cfg.clahe_clip,
+        clip = cfg.doc_clahe_clip if strong else cfg.photo_clahe_clip
+        cl = cv2.createCLAHE(clipLimit=clip,
                              tileGridSize=(cfg.clahe_grid, cfg.clahe_grid))
         L_flat = cl.apply(L_flat)
 
     # "scan look": adaptive white/black-point stretch — strong for documents,
-    # gentle for colored photos/cards. Classify on the original page colors.
-    L_flat = _scan_levels(L_flat, strong=_is_document(bgr))
+    # gentle for colored photos/cards.
+    L_flat = _scan_levels(L_flat, strong=strong)
 
     # chroma denoise: kill color moiré/speckle, keep large ink/stamp regions.
     if cfg.chroma_median and cfg.chroma_median >= 3:
