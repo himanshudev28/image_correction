@@ -106,7 +106,8 @@ class DemoireConfig:
     enabled: bool = os.environ.get("SCANNER_DEMOIRE", "1") != "0"
     model_path: str = os.environ.get(
         "SCANNER_DEMOIRE_MODEL", str(MODELS_DIR / "esdnet_fhdmi_demoire.onnx"))
-    max_edge: int = 768                # inference long edge (speed/quality balance)
+    max_edge: int = 1280               # inference long edge: higher = sharper text
+                                       # (~3s on a big page; opt-in so latency is fine)
 
 
 @dataclass(frozen=True)
