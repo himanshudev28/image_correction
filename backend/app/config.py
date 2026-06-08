@@ -167,6 +167,9 @@ class IlluminationConfig:
     photo_black_pct: float = 2.0
     photo_black_target: int = 0
     photo_gamma: float = 1.0
+    # de-moiré path: push the white-point harder so ESDNet's residual gray "clouds"
+    # in the background clip to clean white (Adobe-flat look).
+    demoire_white_pct: float = 60.0
     # chroma cleanup: a small median removes speckle, then a SOFT CHROMA GATE
     # neutralizes low-saturation color — this is what kills screen-photo moiré
     # (pale green/magenta bands measure low LAB-chroma) while keeping real, saturated

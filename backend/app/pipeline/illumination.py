@@ -56,14 +56,18 @@ def _is_document(bgr: np.ndarray) -> bool:
     return paper_frac >= cfg.paper_frac_threshold
 
 
-def _scan_levels(L: np.ndarray, strong: bool) -> np.ndarray:
+def _scan_levels(L: np.ndarray, strong: bool, white_pct: float | None = None) -> np.ndarray:
     """White-point/black-point level stretch on L (the 'scan look'). Maps a low
-    percentile → black_target and a high percentile → 255, with a mild gamma."""
+    percentile → black_target and a high percentile → 255, with a mild gamma.
+    `white_pct` overrides the white-point (used to flatten residual cloud on
+    de-moiréd screen photos to clean white)."""
     cfg = settings.illumination
     if strong:
         wp, bp, bt, g = cfg.doc_white_pct, cfg.doc_black_pct, cfg.doc_black_target, cfg.doc_gamma
     else:
         wp, bp, bt, g = cfg.photo_white_pct, cfg.photo_black_pct, cfg.photo_black_target, cfg.photo_gamma
+    if white_pct is not None:
+        wp = white_pct
     lo = float(np.percentile(L, bp))
     hi = float(np.percentile(L, wp))
     if hi - lo < 1.0:
@@ -76,7 +80,8 @@ def _scan_levels(L: np.ndarray, strong: bool) -> np.ndarray:
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
-def flatten(bgr: np.ndarray, clahe: bool = True) -> np.ndarray:
+def flatten(bgr: np.ndarray, clahe: bool = True,
+            scan_white_pct: float | None = None) -> np.ndarray:
     cfg = settings.illumination
     lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
     L, a, b = cv2.split(lab)
@@ -96,8 +101,9 @@ def flatten(bgr: np.ndarray, clahe: bool = True) -> np.ndarray:
         L_flat = cl.apply(L_flat)
 
     # "scan look": adaptive white/black-point stretch — strong for documents,
-    # gentle for colored photos/cards.
-    L_flat = _scan_levels(L_flat, strong=strong)
+    # gentle for colored photos/cards. `scan_white_pct` (de-moiré path) pushes the
+    # white-point harder to flatten residual cloud to clean white.
+    L_flat = _scan_levels(L_flat, strong=strong, white_pct=scan_white_pct)
 
     # chroma cleanup: speckle median, then soft chroma gate (kills pale moiré).
     if cfg.chroma_median and cfg.chroma_median >= 3:

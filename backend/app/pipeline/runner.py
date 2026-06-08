@@ -131,7 +131,8 @@ def process_page(bgr: np.ndarray, mode: str = "color",
 
     # --- illumination (color-preserving) ---
     t0 = time.perf_counter()
-    flat = illumination.flatten(warped)
+    scan_white = settings.illumination.demoire_white_pct if demoire else None
+    flat = illumination.flatten(warped, scan_white_pct=scan_white)
     t["illumination"] = (time.perf_counter() - t0) * 1000
 
     # --- denoise + luminance sharpen (sharper after de-moiré, which softens) ---
