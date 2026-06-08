@@ -1,0 +1,30 @@
+# Consent Document Scanner — backend dependencies
+# Every package here is commercially clean (MIT/BSD/Apache, or LGPL libs).
+# Explicitly NOT used: PyMuPDF (AGPL), DocTr family (research-only), HED/BSDS500 weights.
+# Loose lower-bound pins so prebuilt wheels resolve across Python 3.10–3.13.
+
+fastapi>=0.115
+uvicorn[standard]>=0.34
+python-multipart>=0.0.20           # multipart/form-data file uploads
+
+# --- image processing core ---
+opencv-python-headless>=4.10        # Apache-2.0 (>=4.5); headless server wheel
+numpy>=2.1
+scikit-image>=0.25                  # BSD-3 (Sauvola, restoration)
+Pillow>=11.0                        # MIT/HPND — exif_transpose, transcode
+pillow-heif>=0.21                   # HEIC decode (LGPL)
+
+# --- PDF I/O ---
+pypdfium2>=4.30                     # Apache-2.0/BSD-3 — rasterize/inspect INPUT pdfs (NOT PyMuPDF)
+pypdf>=5.1                          # BSD-3 — lossless page copy/merge (born-digital passthrough)
+img2pdf>=0.6                        # LGPL-3.0 — image -> output PDF
+
+# --- optional ML corner detector (DocAligner, Apache-2.0) ---
+onnxruntime>=1.20                   # MIT — run the DocAligner ONNX model on CPU
+gdown>=5.2                          # MIT — fetch the model file (setup script only)
+
+# --- persistence ---
+sqlmodel>=0.0.22                    # MIT — SQLite (PoC) -> Postgres later
+
+# --- tests ---
+pytest>=8.3

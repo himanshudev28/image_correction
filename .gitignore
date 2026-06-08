@@ -1,0 +1,24 @@
+# python
+backend/.venv/
+backend/.venv-ml/
+__pycache__/
+*.pyc
+backend/var/
+.pytest_cache/
+
+# ML model weights (fetched via scripts/fetch_docaligner_model.py)
+backend/models/*.onnx
+
+# node
+frontend/node_modules/
+frontend/dist/
+
+# runtime data / generated
+sample_data/
+backend/static/
+
+# local tooling
+.claude/
+
+# os
+.DS_Store

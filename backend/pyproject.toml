@@ -1,0 +1,13 @@
+[project]
+name = "consent-scanner-backend"
+version = "0.1.0"
+description = "Adobe Scan-class document cleanup for healthcare consent forms (M1 MVP)"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
