@@ -156,11 +156,13 @@ class IlluminationConfig:
     photo_black_pct: float = 2.0
     photo_black_target: int = 0
     photo_gamma: float = 1.0
-    # chroma denoise: median-blur + gentle gaussian on the LAB a/b channels to
-    # suppress color moiré (photographing a screen) and speckle, while keeping large
-    # ink/stamp regions. Real document color is large-area, so this is safe.
-    chroma_median: int = 7            # odd; 0 disables
-    chroma_blur_sigma: float = 1.5    # extra gaussian on a/b for large moiré bands; 0 disables
+    # chroma cleanup: a small median removes speckle, then a SOFT CHROMA GATE
+    # neutralizes low-saturation color — this is what kills screen-photo moiré
+    # (pale green/magenta bands measure low LAB-chroma) while keeping real, saturated
+    # ink/stamps. Gate ramps: chroma below `lo` → fully neutral, above `hi` → kept.
+    chroma_median: int = 5            # odd; 0 disables
+    chroma_gate_lo: float = 12.0      # LAB chroma (dist from neutral) below this → neutral
+    chroma_gate_hi: float = 30.0      # above this → full color kept (real ink/stamps)
 
 
 @dataclass(frozen=True)

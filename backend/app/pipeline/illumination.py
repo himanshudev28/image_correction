@@ -99,13 +99,25 @@ def flatten(bgr: np.ndarray, clahe: bool = True) -> np.ndarray:
     # gentle for colored photos/cards.
     L_flat = _scan_levels(L_flat, strong=strong)
 
-    # chroma denoise: kill color moiré/speckle, keep large ink/stamp regions.
+    # chroma cleanup: speckle median, then soft chroma gate (kills pale moiré).
     if cfg.chroma_median and cfg.chroma_median >= 3:
         a = cv2.medianBlur(a, cfg.chroma_median)
         b = cv2.medianBlur(b, cfg.chroma_median)
-    if cfg.chroma_blur_sigma and cfg.chroma_blur_sigma > 0:
-        a = cv2.GaussianBlur(a, (0, 0), sigmaX=cfg.chroma_blur_sigma)
-        b = cv2.GaussianBlur(b, (0, 0), sigmaX=cfg.chroma_blur_sigma)
+    a, b = _gate_chroma(a, b)
 
-    merged = cv2.merge([L_flat, a, b])                       # keep original chroma
+    merged = cv2.merge([L_flat, a, b])
     return cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
+
+
+def _gate_chroma(a: np.ndarray, b: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Soft-gate LAB chroma: scale color toward neutral where saturation is low
+    (pale moiré / JPEG color noise), keep it where saturation is high (real ink)."""
+    cfg = settings.illumination
+    af = a.astype(np.float32) - 128.0
+    bf = b.astype(np.float32) - 128.0
+    chroma = np.sqrt(af * af + bf * bf)
+    lo, hi = cfg.chroma_gate_lo, cfg.chroma_gate_hi
+    gate = np.clip((chroma - lo) / max(1e-3, hi - lo), 0.0, 1.0)
+    a = np.clip(128.0 + af * gate, 0, 255).astype(np.uint8)
+    b = np.clip(128.0 + bf * gate, 0, 255).astype(np.uint8)
+    return a, b
