@@ -125,14 +125,27 @@ class IlluminationConfig:
     # captures large soft shadows cheaply (a huge full-res kernel would be slow and
     # miss big blobs). The kernel is relative to the small estimate (FR-20).
     bg_estimate_long_edge: int = 256  # estimate background at this size
-    kernel_frac: float = 0.18         # close kernel ~ 18% of the small long edge
-    kernel_min: int = 9
-    # white-point: push paper background toward white without crushing ink (FR-21)
-    white_point_pct: float = 92.0     # this brightness percentile = "paper"
-    white_point_target: float = 244.0 # map it to ~white
-    white_point_max_gain: float = 1.8 # cap gain so we don't blow out dim captures
-    clahe_clip: float = 1.2           # gentle contrast finish, won't crush ink
+    bg_blur_sigma_frac: float = 0.10  # gaussian-blur background ~10% of long edge:
+                                      # captures smooth shadow gradients to divide out
+    clahe_clip: float = 1.5           # local-contrast finish, won't crush ink
     clahe_grid: int = 8
+    # "scan look" level stretch (Adobe Magic-Color style) on the L channel only —
+    # chroma (a/b) untouched so ink/stamp color survives (FR-19). Content-adaptive:
+    # a document-like page (mostly bright paper) gets the aggressive preset; a
+    # colored photo/card gets the gentle one so it isn't washed out.
+    paper_frac_threshold: float = 0.45  # >= this frac of bright low-sat px → "document"
+    paper_bright_v: int = 180           # HSV V above this = bright
+    paper_low_sat: int = 45             # HSV S below this = low-saturation (paper-like)
+    # document preset (punchy white paper + dark text)
+    doc_white_pct: float = 75.0         # this L percentile and above → pure white
+    doc_black_pct: float = 8.0          # this L percentile → black_target
+    doc_black_target: int = 15          # don't fully crush (keep ink legible, not pure black)
+    doc_gamma: float = 0.90             # <1 brightens midtones slightly
+    # photo preset (gentle — protects colored cards/photos)
+    photo_white_pct: float = 98.0
+    photo_black_pct: float = 2.0
+    photo_black_target: int = 0
+    photo_gamma: float = 1.0
     # chroma denoise: median-blur + gentle gaussian on the LAB a/b channels to
     # suppress color moiré (photographing a screen) and speckle, while keeping large
     # ink/stamp regions. Real document color is large-area, so this is safe.
