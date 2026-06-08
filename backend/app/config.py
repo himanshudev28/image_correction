@@ -141,7 +141,7 @@ class IlluminationConfig:
     # chroma (a/b) untouched so ink/stamp color survives (FR-19). Content-adaptive:
     # a document-like page (mostly bright paper) gets the aggressive preset; a
     # colored photo/card gets the gentle one so it isn't washed out.
-    paper_frac_threshold: float = 0.45  # >= this frac of bright low-sat px → "document"
+    paper_frac_threshold: float = 0.40  # >= this frac of bright low-sat px → "document"
     paper_bright_v: int = 180           # HSV V above this = bright
     paper_low_sat: int = 45             # HSV S below this = low-saturation (paper-like)
     # document preset: whiten paper but keep darks SOFT so dark header bands and
